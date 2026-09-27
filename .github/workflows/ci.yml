@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    paths-ignore: ["**.md"]
+  pull_request:
+    branches: [master, develop]
+    paths-ignore: ["**.md"]
+
+# Um novo push na mesma branch cancela a execução anterior
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build e testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Mesmo Postgres do docker-compose.yml, usado pelos testes (Flyway + validação das entidades)
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: investfacil
+          POSTGRES_PASSWORD: investfacil123
+          POSTGRES_DB: investfacil_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U investfacil -d investfacil_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/investfacil_db
+      SPRING_DATASOURCE_USERNAME: investfacil
+      SPRING_DATASOURCE_PASSWORD: investfacil123
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Compilar, testar e empacotar
+        run: ./mvnw -B verify
+
+      - name: Publicar relatórios de teste (em caso de falha)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          retention-days: 7

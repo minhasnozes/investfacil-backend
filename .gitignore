@@ -35,7 +35,7 @@ build/
 ### Node / Next.js (front-end) ###
 node_modules/
 .next/
-out/
+/out/
 .turbo/
 next-env.d.ts
 *.tsbuildinfo

@@ -1,4 +1,4 @@
-package investfacil.demo.entity;
+package investfacil.demo.usuario.domain.model;
 
 public enum PerfilInvestidorEnum {
     CONSERVADOR,
